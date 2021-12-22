@@ -14,8 +14,7 @@ import com.google.android.gms.common.api.Status
 import com.google.android.gms.safetynet.SafetyNet
 import com.google.android.gms.safetynet.SafetyNet.SafetyNetApi
 
-
-class MainActivity : AppCompatActivity(), GoogleAgitpiClient.ConnectionCallbacks,
+class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks,
     GoogleApiClient.OnConnectionFailedListener {
 
     private val SITE_KEY = "6LfQQqgdAAAAAE0FGa60dpO56oWF0l-14zzyJh_R"

@@ -5,20 +5,16 @@ import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
-import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.api.GoogleApiClient
-import com.google.android.gms.common.api.Status
-import com.google.android.gms.safetynet.SafetyNet
-import com.google.android.gms.safetynet.SafetyNet.SafetyNetApi
+import com.hcaptcha.sdk.*
+import com.hcaptcha.sdk.tasks.OnFailureListener
+import com.hcaptcha.sdk.tasks.OnSuccessListener
 
-class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks,
-    GoogleApiClient.OnConnectionFailedListener {
 
-    private val SITE_KEY = "6LfQQqgdAAAAAE0FGa60dpO56oWF0l-14zzyJh_R"
-    private lateinit var googleApiClient: GoogleApiClient
+class MainActivity : AppCompatActivity() {
+
+    private val TAG = MainActivity::class.java.simpleName
 
     private lateinit var chekbox: CheckBox
     private lateinit var editText: EditText
@@ -28,8 +24,6 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks,
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        connectGoogleApi()
 
         chekbox = findViewById(R.id.check_box)
         editText = findViewById(R.id.editText)
@@ -41,8 +35,7 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks,
                 hiddenKeyboard(editText)
                 if (CardUtil.isValidPan(editText.text.toString())) {
                     button.isEnabled = true
-                } else {
-                    recaptcha.visibility = View.VISIBLE
+                    onClickHCaptcha(HCaptchaSize.NORMAL)
                 }
             }
         }
@@ -53,53 +46,40 @@ class MainActivity : AppCompatActivity(), GoogleApiClient.ConnectionCallbacks,
             onResume()
         }
 
-        chekbox.setOnClickListener {
-            SafetyNetApi.verifyWithRecaptcha(googleApiClient, SITE_KEY)
-                .setResultCallback { result ->
-                    val status: Status = result.status
-                    chekbox.isChecked = if (status.isSuccess) {
-                        button.isEnabled = true
-                        true
-                    } else {
-                        false
-                    }
-                }
-        }
-
         button.setOnClickListener {
-            if(CardUtil.isValidPan(editText.text.toString())){
+            if (CardUtil.isValidPan(editText.text.toString())) {
                 Toast.makeText(this, "Cartão válido", Toast.LENGTH_LONG).show()
-            }else {
+            } else {
                 Toast.makeText(this, "Cartão inválido", Toast.LENGTH_LONG).show()
             }
         }
 
-
-    }
-
-    override fun onConnected(@Nullable bundle: Bundle?) {
-        Log.i("LOG", "onConnected")
-    }
-
-    override fun onConnectionSuspended(i: Int) {
-        Log.i("LOG", "onConnectionSuspended: $i")
-    }
-
-    override fun onConnectionFailed(connectionResult: ConnectionResult) {
-        Log.i("LOG", "onConnectionFailed():${connectionResult.errorMessage}".trimIndent())
-    }
-
-    private fun connectGoogleApi() {
-        googleApiClient = GoogleApiClient.Builder(this)
-            .addApi(SafetyNet.API)
-            .addConnectionCallbacks(this@MainActivity)
-            .addOnConnectionFailedListener(this@MainActivity)
-            .build()
-        googleApiClient.connect()
     }
 
     private fun hiddenKeyboard(v: View) {
-       val inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        val inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         inputMethodManager.hideSoftInputFromWindow(v.windowToken, 0)
+    }
+
+    fun onClickHCaptcha(hCaptchaSize: HCaptchaSize?) {
+        val YOUR_API_SITE_KEY = "c7d19c09-8bea-4883-8c16-1259932b0c56"
+        val config: HCaptchaConfig = HCaptchaConfig.builder()
+            .siteKey(YOUR_API_SITE_KEY)
+            .apiEndpoint("https://js.hcaptcha.com/1/api.js")
+            .size(hCaptchaSize)
+            .loading(true)
+            .build()
+        HCaptcha.getClient(this).verifyWithHCaptcha(config)
+            .addOnSuccessListener(OnSuccessListener<HCaptchaTokenResponse>() {
+                fun onSuccess(response: HCaptchaTokenResponse) {
+                    response.tokenResult
+                }
+            })
+            .addOnFailureListener(OnFailureListener { e ->
+                Log.d(
+                    TAG,
+                    "hCaptcha failed: " + e.message + "(" + e.statusCode + ")"
+                )
+            })
     }
 }
